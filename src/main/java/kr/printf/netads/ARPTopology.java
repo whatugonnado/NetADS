@@ -40,4 +40,16 @@ public class ARPTopology {
 	    builder.setSpout(spoutId, new ARPSpout(), 3);
 	    builder.setBolt(counterId, new ARPRollingCountBolt(), 4);
 	}
+	
+	public static void main(String[] args) {
+		String topologyName = "ARPTopology";
+		if (args.length >= 1) {
+			topologyName = args[0];
+		}
+		boolean runLocally = true;
+		if (args.length >= 2 && args[1].equalsIgnoreCase("remote")) {
+			runLocally = false;
+		}
+		LOG.info("Topology name: " + topologyName);
+	}
 }
