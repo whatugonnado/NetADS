@@ -24,11 +24,4 @@ public class ARPSpout extends AbstractProtocolSpout {
 		// TODO Auto-generated method stub
 
 	}
-
-	@Override
-	public String getUniqueWord(Protocol p) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 }

@@ -9,7 +9,7 @@ import backtype.storm.generated.StormTopology;
 
 public class StormRunner {
 
-	  private static final int MILLIS_IN_SEC = 1000;
+	  private static final int MILLIS_IN_SEC = 10000;
 
 	  private StormRunner() {
 	  }

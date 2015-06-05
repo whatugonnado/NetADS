@@ -16,6 +16,4 @@ public abstract class AbstractProtocolSpout extends BaseRichSpout {
 	abstract public void nextTuple();
 
 	abstract public void declareOutputFields(OutputFieldsDeclarer declarer);
-	
-	abstract public String getUniqueWord(Protocol p);
 }
