@@ -36,7 +36,8 @@ public class ARPRollingCountBolt extends BaseRichBolt {
 				DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
 	}
 
-	public ARPRollingCountBolt(int windowLengthInSeconds, int emitFrequencyInSeconds) {
+	public ARPRollingCountBolt(int windowLengthInSeconds, 
+			int emitFrequencyInSeconds) {
 		this.windowLengthInSeconds = windowLengthInSeconds;
 		this.emitFrequencyInSeconds = emitFrequencyInSeconds;
 		counter = new SlidingWindowCounter<Object>(deriveNumWindowChunksFrom(
