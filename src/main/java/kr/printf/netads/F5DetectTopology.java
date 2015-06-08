@@ -32,7 +32,7 @@ public class F5DetectTopology {
 
 	private static Config createTopologyConfiguration() {
 		Config conf = new Config();
-		conf.setDebug(false);
+		conf.setDebug(true);
 		return conf;
 	}
 
