@@ -32,7 +32,7 @@ public class F5DetectTopology {
 
 	private static Config createTopologyConfiguration() {
 		Config conf = new Config();
-		conf.setDebug(true);
+		conf.setDebug(false);
 		return conf;
 	}
 
@@ -56,6 +56,7 @@ public class F5DetectTopology {
 	public void runRemotely() throws Exception {
 		StormRunner.runTopologyRemotely(builder.createTopology(), topologyName,
 				topologyConfig);
+		//we dont use this one;
 	}
 
 	public static void main(String[] args) throws Exception {

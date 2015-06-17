@@ -2,12 +2,15 @@ package kr.printf.bolt;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import kr.printf.packet.ARP;
 import kr.printf.tools.NthLastModifiedTimeTracker;
 import kr.printf.tools.SlidingWindowCounter;
 import kr.printf.util.TupleHelpers;
 
 import org.apache.log4j.Logger;
+import org.mortbay.util.ajax.JSON;
 
 import backtype.storm.Config;
 import backtype.storm.task.OutputCollector;
@@ -16,13 +19,14 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
 
 public class ARPRollingCountBolt extends BaseRichBolt {
 
 	private static final long serialVersionUID = 5537727428628598519L;
 	private static final Logger LOG = Logger.getLogger(ARPRollingCountBolt.class);
-	private static final int NUM_WINDOW_CHUNKS = 5;
-	private static final int DEFAULT_SLIDING_WINDOW_IN_SECONDS = NUM_WINDOW_CHUNKS * 60;
+	private static final int NUM_WINDOW_CHUNKS = 10;
+	private static final int DEFAULT_SLIDING_WINDOW_IN_SECONDS = NUM_WINDOW_CHUNKS;
 	private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = DEFAULT_SLIDING_WINDOW_IN_SECONDS
 			/ NUM_WINDOW_CHUNKS;
 	private static final String WINDOW_LENGTH_WARNING_TEMPLATE = "Actual window length is %d seconds when it should be %d seconds"
@@ -33,7 +37,9 @@ public class ARPRollingCountBolt extends BaseRichBolt {
 	private final int emitFrequencyInSeconds;
 	private OutputCollector collector;
 	private NthLastModifiedTimeTracker lastModifiedTracker;
-
+	
+	private final Map<Object, Object> FirstParamForObj;
+	
 	public ARPRollingCountBolt() {
 		this(DEFAULT_SLIDING_WINDOW_IN_SECONDS,
 				DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
@@ -45,6 +51,8 @@ public class ARPRollingCountBolt extends BaseRichBolt {
 		this.emitFrequencyInSeconds = emitFrequencyInSeconds;
 		counter = new SlidingWindowCounter<Object>(deriveNumWindowChunksFrom(
 				this.windowLengthInSeconds, this.emitFrequencyInSeconds));
+	
+		FirstParamForObj = new HashMap<Object, Object>();
 	}
 
 	private int deriveNumWindowChunksFrom(int windowLengthInSeconds,
@@ -52,10 +60,15 @@ public class ARPRollingCountBolt extends BaseRichBolt {
 		return windowLengthInSeconds / windowUpdateFrequencyInSeconds;
 	}
 
+	@SuppressWarnings("rawtypes")
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
 		// TODO Auto-generated method stub
-		
+		this.collector = collector;
+		lastModifiedTracker = new NthLastModifiedTimeTracker(
+				deriveNumWindowChunksFrom(this.windowLengthInSeconds,
+						this.emitFrequencyInSeconds));
+	
 	}
 
 	public void execute(Tuple tuple) {
@@ -74,19 +87,40 @@ public class ARPRollingCountBolt extends BaseRichBolt {
 	}
 
 	private void emitCurrentWindowCounts() {
-
+		Map<Object, Long> counts = counter.getCountsThenAdvanceWindow();
+		emit(counts);
 	}
 
-	private void emit(Map<Object, Long> counts, int actualWindowLengthInSeconds) {
-
+	private void emit(Map<Object, Long> counts) {
+		for (Entry<Object, Long> entry : counts.entrySet()) {
+			Object obj = entry.getKey();
+			Long count = entry.getValue();
+			
+			Map<String, Object> packet = (Map<String, Object>)JSON.parse((String)obj);
+			packet.put("src_mac", FirstParamForObj.get(obj));
+			
+			if(count==0){
+				FirstParamForObj.remove(obj);
+				continue;
+			}
+			
+			obj = JSON.toString(packet);
+			
+			collector.emit(new Values(obj, count));
+		}
 	}
 
 	private void countObjAndAck(Tuple tuple) {
 		Object obj = tuple.getValue(0);
 		counter.incrementCount(obj);
+		
+		Object param = tuple.getValue(1);
+		if(!FirstParamForObj.containsKey(obj))
+			FirstParamForObj.put(obj, param);
+		
 		collector.ack(tuple);
 	}
-
+	
 	@Override
 	public Map<String, Object> getComponentConfiguration() {
 		Map<String, Object> conf = new HashMap<String, Object>();
